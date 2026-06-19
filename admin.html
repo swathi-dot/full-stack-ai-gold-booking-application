@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | GoldReserve</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav>
+        <div class="logo"><a href="index.html" style="text-decoration: none; color: inherit;">GOLDRESERVE</a></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">My Dashboard</a></li>
+        </ul>
+        <div id="user-info">
+            <span id="user-name"></span>
+            <button onclick="logout()" class="btn btn-outline">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Admin Control Panel</h1>
+        
+        <div class="grid" style="margin-top: 2rem;">
+            <div class="card">
+                <h3>Update Gold Price</h3>
+                <form id="price-form" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>New Price (per gram)</label>
+                        <input type="number" id="new-price" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Update Price</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h3>System Summary</h3>
+                <p>Manage users and track all gold bookings across the platform.</p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h2>All Bookings</h2>
+            <div id="admin-bookings-list">
+                <p>Loading bookings...</p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h2>Registered Users</h2>
+            <div id="admin-users-list">
+                <p>Loading users...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        const initAdmin = async () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || user.role !== 'admin') {
+                alert('Access Denied');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            loadData();
+        };
+
+        const loadData = async () => {
+            try {
+                const bookings = await apiRequest('/admin/bookings');
+                const users = await apiRequest('/admin/users');
+                
+                renderBookings(bookings);
+                renderUsers(users);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        const renderBookings = (bookings) => {
+            const listDiv = document.getElementById('admin-bookings-list');
+            let html = '<table><thead><tr><th>User</th><th>Weight</th><th>Price</th><th>Total</th><th>Date</th></tr></thead><tbody>';
+            bookings.forEach(b => {
+                html += `
+                    <tr>
+                        <td>${b.userId ? b.userId.name : 'Unknown'}</td>
+                        <td>${b.weight}g</td>
+                        <td>₹${b.priceAtBooking.toLocaleString()}</td>
+                        <td>₹${(b.weight * b.priceAtBooking).toLocaleString()}</td>
+                        <td>${new Date(b.bookingDate).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+            listDiv.innerHTML = html;
+        };
+
+        const renderUsers = (users) => {
+            const listDiv = document.getElementById('admin-users-list');
+            let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>';
+            users.forEach(u => {
+                html += `
+                    <tr>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td>${u.role.toUpperCase()}</td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+            listDiv.innerHTML = html;
+        };
+
+        document.getElementById('price-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const price = document.getElementById('new-price').value;
+            try {
+                await apiRequest('/admin/update-price', 'POST', { price });
+                alert('Price updated successfully');
+                loadData();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initAdmin);
+    </script>
+</body>
+</html>

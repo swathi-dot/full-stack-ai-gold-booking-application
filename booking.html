@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Gold | GoldReserve</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav>
+        <div class="logo"><a href="index.html" style="text-decoration: none; color: inherit;">GOLDRESERVE</a></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+        </ul>
+        <div id="user-info">
+            <span id="user-name"></span>
+            <button onclick="logout()" class="btn btn-outline">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 800px;">
+        <h1>Book Your Gold</h1>
+        
+        <div class="grid" style="margin-top: 2rem;">
+            <div class="card">
+                <h3>Live Market Price</h3>
+                <div class="current-price" style="font-size: 2rem;">₹<span id="booking-live-price">6,500</span></div>
+                <p>Lock this price for your investment.</p>
+            </div>
+
+            <div class="card">
+                <form id="booking-form">
+                    <div class="form-group">
+                        <label>Weight (Grams)</label>
+                        <input type="number" id="weight" min="1" step="1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Total</label>
+                        <h2 style="color: var(--primary-color);">₹<span id="total-price">6,500</span></h2>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Confirm Booking</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let currentPrice = 6500;
+
+        const initBooking = async () => {
+            try {
+                const data = await apiRequest('/gold/current');
+                currentPrice = data.price;
+                document.getElementById('booking-live-price').innerText = currentPrice.toLocaleString();
+                updateTotal();
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        const updateTotal = () => {
+            const weight = document.getElementById('weight').value;
+            document.getElementById('total-price').innerText = (weight * currentPrice).toLocaleString();
+        };
+
+        document.getElementById('weight').addEventListener('input', updateTotal);
+
+        document.getElementById('booking-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const weight = document.getElementById('weight').value;
+            
+            try {
+                await apiRequest('/bookings/create', 'POST', {
+                    weight,
+                    priceAtBooking: currentPrice
+                });
+                alert('Booking successful!');
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initBooking);
+    </script>
+</body>
+</html>
